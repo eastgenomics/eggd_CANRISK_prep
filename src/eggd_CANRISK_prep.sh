@@ -4,11 +4,14 @@ set -exo pipefail
 
 main() {
 
-    dx download "$VCF" -o VCF
+    # Download inputs from DNAnexus in parallel, these will be downloaded to /home/dnanexus/in/
+    dx-download-all-inputs --parallel
 
-    dx download "$PRS_variants" -o PRS_variants
+    # Install packages from the python asset
+    pip3 install /pytz-*.whl /numpy-*.whl /pandas-*.whl
+
+    
 
     filtered_VCF=$(dx upload filtered_VCF --brief)
-
     dx-jobutil-add-output filtered_VCF "$filtered_VCF" --class=file
 }
