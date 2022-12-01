@@ -6,7 +6,7 @@
   "version": "0.0.1",
   "inputSpec": [
     {
-      "name": "VCF",
+      "name": "vcf",
       "class": "file",
       "optional": false,
       "patterns": [
