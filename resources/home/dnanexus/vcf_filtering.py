@@ -21,17 +21,22 @@ def parse_args():
     parser.add_argument(
         '-p', '--PRS_variant_file',
         help='PRS variant file',
-        required=False
+        required=True
         )
 
     args = parser.parse_args()
 
-    return
+    return args
 
 def main():
-    # read n the filtered VCF
-    vcf = 'NA12878-NA12878-1-CEN-F-EGG5_markdup_recalibrated_Haplotyper_filteredPOS.vcf'
-    cols = ["CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "SAMPLE"]
+    args = parse_args()
+
+    SAMPLE = args.vcf.split("_")[0]
+    print(SAMPLE)
+
+    # read in the filtered VCF
+    vcf = args.vcf
+    cols = ["CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", SAMPLE]
     # read vcf records into df
     vcf_df = pd.read_csv(vcf, sep="\t", comment='#',
                         names=cols, compression='infer')
