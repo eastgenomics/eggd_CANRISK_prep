@@ -14,16 +14,25 @@ main() {
     # which is the alpha value for the PRS risk and headers
     awk -F "," '{print $1"\t"$2-1"\t"$2}' $PRS_variants_path | tail -n +3  > PRS_variants.bed
 
-    # intersect the VCF and PRS variant list to save mem in python
+    # make the output filename a combo of sample VCF and PRS cancer type
+    # to track the sample and filtering applied
     vcf_filename=${vcf_path##*/}
     PRS_variants_filename=${PRS_variants_path##*/}
-
     out_filename=${vcf_filename%%.*}_${PRS_variants_filename%.*}
-    echo $out_filename
+
+    # intersect the VCF and PRS variant list to save mem in python
     bedtools intersect -a $vcf_path -b  PRS_variants.bed -header > ${out_filename}.vcf
 
-    python vcf_filtering.py -v ${out_filename}.vcf -p $PRS_variants_path
+    # run the VCF and PRS variant list in python to get the same
+    # variants in the VCF to upload to CANRISK
+    python3 vcf_filtering.py -v ${out_filename}.vcf -p $PRS_variants_path
+    out_file=$(ls | grep "CANRISK.vcf")
 
-    # filtered_VCF=$(dx upload filtered_VCF --brief)
-    # dx-jobutil-add-output filtered_VCF "$filtered_VCF" --class=file
+    # python didnt output the header, so lets add that from the original
+    # VCF and output it to the same filename
+    cat <(zcat $vcf_path | grep ^"#") <(grep -v ^"#" $out_file | sort -k1,1V -k2,2n ) > $(echo $out_file)
+
+    # upload VCF
+    filtered_VCF=$(dx upload $out_file --brief)
+    dx-jobutil-add-output filtered_VCF "$filtered_VCF" --class=file
 }
