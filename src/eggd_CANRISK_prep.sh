@@ -27,10 +27,11 @@ main() {
     # variants in the VCF to upload to CANRISK
     python3 vcf_filtering.py -v ${out_filename}.vcf -p $PRS_variants_path
     out_file=$(ls | grep "CANRISK.vcf")
+    grep -v ^"#" $out_file | sort -k1,1V -k2,2n > $(ls $out_file)
 
     # python didnt output the header, so lets add that from the original
     # VCF and output it to the same filename
-    cat <(zcat $vcf_path | grep ^"#") <(grep -v ^"#" $out_file | sort -k1,1V -k2,2n ) > $(echo $out_file)
+    cat <(zcat $vcf_path | grep ^"#") <( cat $out_file) > $(ls $out_file)
 
     # upload VCF
     filtered_VCF=$(dx upload $out_file --brief)
