@@ -28,11 +28,8 @@ def parse_args():
 
     return args
 
-def main():
-    args = parse_args()
-    # get the sample name from the VCF
-    SAMPLE = args.vcf.split("_")[0]
 
+def read_vcf_in(args, SAMPLE):
     # read in the filtered VCF
     cols = ["CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", SAMPLE]
     # read vcf records into df
@@ -48,52 +45,61 @@ def main():
     vcf_df['QUAL'] = "."
     vcf_df['INFO'] = "."
 
-    # add empty column to state whether we have the right genotype
-    vcf_df["right_Ref2Alt"] = ""
 
-    # Read in the BCAC_313 PRS
-    BCAC_PRS = pd.read_csv(args.PRS_variant_file, sep=",", skiprows=1,
+    return vcf_df
+
+def main():
+    args = parse_args()
+
+    # get the sample name from the VCF
+    SAMPLE = args.vcf.split("_")[0]
+
+    # Read in VCF
+    vcf_df = read_vcf_in(args, SAMPLE)
+    # Read in the PRS varaints file
+    PRS = pd.read_csv(args.PRS_variant_file, sep=",", skiprows=1,
                         compression='infer')
 
 
-    # Now loop through our VCF, get the chr & pos of each variant and check
-    # that the REF>ALT matches whats in BCAC_313 PRS
+    # Read in the BCAC_313 PRS
+    PRS = pd.read_csv(args.PRS_variant_file, sep=",", skiprows=1,
+                        compression='infer')
 
+    # Now loop through our VCF, get the chr & pos of each variant and check
+    # that the REF>ALT matches whats in PRS variants file. If there is
+    # a match keep, else delete row
+    variants_to_drop = []
     for variant in range(0, len(vcf_df.index)):
         chr = vcf_df.loc[variant,"CHROM"]
         pos = vcf_df.loc[variant,"POS"]
         ref = vcf_df.loc[variant,"REF"]
         alt = vcf_df.loc[variant,"ALT"]
-        BCAC_PRS_subset = BCAC_PRS[(BCAC_PRS['Chromosome'] == chr) & (BCAC_PRS['Position'] == pos)]
-        if BCAC_PRS_subset.empty:
-            # print("empty dataframe")
+        PRS_subset = PRS[(PRS['Chromosome'] == chr) & (PRS['Position'] == pos)]
+        if PRS_subset.empty:
             next
         else:
-            if BCAC_PRS_subset['Reference_Allele'].values[0] == ref and BCAC_PRS_subset['Effect_Allele'].values[0] == alt:
-                vcf_df.loc[variant, "right_Ref2Alt"] = "Yes"
+            if PRS_subset['Reference_Allele'].values[0] == ref and PRS_subset['Effect_Allele'].values[0] == alt:
+                next
             else:
-                vcf_df.loc[variant, "right_Ref2Alt"] = "No"
+                print("Incorrect Ref>Alt change, removing this variant")
+                variants_to_drop.append(variant)
 
-    print(vcf_df)
-    print(vcf_df['right_Ref2Alt'].value_counts())
-
-    vcf_df2 = vcf_df.loc[vcf_df['right_Ref2Alt'] == 'Yes']
-    vcf_df2 = vcf_df2[["CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", SAMPLE]]
-
+    # remove variants that have unexpected Ref>Alt change
+    vcf_df = vcf_df.drop(variants_to_drop)
     # CANRISK is sassy and needs all sites. To deal with it, we will
     # check if position and REF>ALT dont match, then we can add this is
     # but genotype 0/0
 
-    print(vcf_df2)
+    print(vcf_df)
 
     new_vcf_df = pd.DataFrame()
 
-    for variant in range(0, len(BCAC_PRS.index)):
-        chr = BCAC_PRS.loc[variant,"Chromosome"]
-        pos = BCAC_PRS.loc[variant,"Position"]
-        ref = BCAC_PRS.loc[variant,"Reference_Allele"]
-        alt = BCAC_PRS.loc[variant,"Effect_Allele"]
-        vcf_df2_subset = vcf_df2[(vcf_df2['CHROM'] == chr) & (vcf_df2['POS'] == pos) & (vcf_df2['REF'] == ref) & (vcf_df2['ALT'] == alt)]
+    for variant in range(0, len(PRS.index)):
+        chr = PRS.loc[variant,"Chromosome"]
+        pos = PRS.loc[variant,"Position"]
+        ref = PRS.loc[variant,"Reference_Allele"]
+        alt = PRS.loc[variant,"Effect_Allele"]
+        vcf_df2_subset = vcf_df[(vcf_df['CHROM'] == chr) & (vcf_df['POS'] == pos) & (vcf_df['REF'] == ref) & (vcf_df['ALT'] == alt)]
         # if the chr,pos,ref and alt doesnt exist in our VCF, we should include it,
         if vcf_df2_subset.empty:
             new_row = pd.Series({'CHROM': chr,
@@ -112,10 +118,9 @@ def main():
             new_vcf_df = pd.concat([new_vcf_df, new_row.to_frame().T], ignore_index=True)
 
 
-
     # this contains all the GT's that don't exist/match what CANRISK wants
-    # let's combine vcf_df3 and new_vcf_df
-    final_vcf =  pd.concat([vcf_df2, new_vcf_df], ignore_index=True)
+    # let's combine vcf_df and new_vcf_df
+    final_vcf =  pd.concat([vcf_df, new_vcf_df], ignore_index=True)
     final_vcf['CHROM'] = 'chr' + final_vcf['CHROM'].astype(str)
     final_vcf = final_vcf.rename(columns={"CHROM": "#CHROM"})
     print(final_vcf)
@@ -123,11 +128,6 @@ def main():
             args.vcf.split(".")[0] + "_CANRISK.vcf",
             sep="\t", index=False, header=True
             )
-    # we are missing headers so lets add that back in
-    #command = "grep ^'##' NA12878-NA12878-1-CEN-F-EGG5_markdup_recalibrated_Haplotyper.vcf > header.txt"
-    #command2 = "cat header.txt NA12878-NA12878-1-CEN-F-EGG5_markdup_recalibrated_Haplotyper_filteredPOS_REF_ALT.vcf > NA12878-NA12878-1-CEN-F-EGG5_markdup_recalibrated_Haplotyper_filteredPOS_REF_ALT_final.vcf"
-    #subprocess.check_output(command, stderr=subprocess.STDOUT, shell = True)
-    #subprocess.check_output(command2, stderr=subprocess.STDOUT, shell = True)
 
 if __name__ == "__main__":
 
