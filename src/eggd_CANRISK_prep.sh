@@ -24,6 +24,8 @@ main() {
 
     head ${out_filename}.vcf
 
+    python vcf_filtering.py -v ${out_filename}.vcf -p $PRS_variants_path
+
     # filtered_VCF=$(dx upload filtered_VCF --brief)
     # dx-jobutil-add-output filtered_VCF "$filtered_VCF" --class=file
 }
