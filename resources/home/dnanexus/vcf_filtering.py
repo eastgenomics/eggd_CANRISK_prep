@@ -35,10 +35,9 @@ def main():
     print(SAMPLE)
 
     # read in the filtered VCF
-    vcf = args.vcf
     cols = ["CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", SAMPLE]
     # read vcf records into df
-    vcf_df = pd.read_csv(vcf, sep="\t", comment='#',
+    vcf_df = pd.read_csv(args.vcf, sep="\t", comment='#',
                         names=cols, compression='infer')
 
     vcf_df['FORMAT'] = vcf_df['FORMAT'].str.split(':', expand=True)[0]
