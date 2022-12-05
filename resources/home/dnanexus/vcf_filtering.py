@@ -50,9 +50,8 @@ def main():
 
     # add empty column to state whether we have the right genotype
     vcf_df["right_Ref2Alt"] = ""
-    print(vcf_df)
 
-    # Read in the BCAC_313 PRS and filter to match REF>ALT change
+    # Read in the BCAC_313 PRS
     BCAC_PRS = pd.read_csv(args.PRS_variant_file, sep=",", skiprows=1,
                         compression='infer')
 
