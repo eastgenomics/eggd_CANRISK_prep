@@ -60,11 +60,6 @@ def main():
     PRS = pd.read_csv(args.PRS_variant_file, sep=",", skiprows=1,
                         compression='infer')
 
-
-    # Read in the BCAC_313 PRS
-    PRS = pd.read_csv(args.PRS_variant_file, sep=",", skiprows=1,
-                        compression='infer')
-
     # Now loop through our VCF, get the chr & pos of each variant and check
     # that the REF>ALT matches whats in PRS variants file. If there is
     # a match keep, else delete row
