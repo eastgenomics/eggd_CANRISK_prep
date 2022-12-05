@@ -22,8 +22,6 @@ main() {
     echo $out_filename
     bedtools intersect -a $vcf_path -b  PRS_variants.bed -header > ${out_filename}.vcf
 
-    head ${out_filename}.vcf
-
     python vcf_filtering.py -v ${out_filename}.vcf -p $PRS_variants_path
 
     # filtered_VCF=$(dx upload filtered_VCF --brief)
