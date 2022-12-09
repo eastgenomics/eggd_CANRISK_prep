@@ -8,7 +8,7 @@ This app filters and formats VCFs to calculate PRS scores using the online CanRi
 
 - gVCF (VCF also works but this is not accurate as homozygous reference variants are missed)
 - PRS file from CanRisk (https://canrisk.atlassian.net/wiki/spaces/FAQS/pages/35979266/What+variants+are+used+in+the+PRS)
-- Reference genome
+- Reference genome fasta file (compressed)
 
 ## How does this app work?
 
